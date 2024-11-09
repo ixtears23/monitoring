@@ -55,8 +55,8 @@ services:
     user: "1000"  # 사용자 ID 설정
     # 환경 변수 설정 (필요 시 주석 해제)
     environment:
-      - GF_SECURITY_ADMIN_USER=admin  # 관리자 사용자 이름
-      - GF_SECURITY_ADMIN_PASSWORD=secret  # 관리자 비밀번호
+      - GF_SECURITY_ADMIN_USER  # 관리자 사용자 이름
+      - GF_SECURITY_ADMIN_PASSWORD  # 관리자 비밀번호
       - GF_SERVER_ROOT_URL=http://localhost:3000  # 서버 루트 URL
     labels:
       com.example.description: "Grafana visualization service"  # 레이블 추가
