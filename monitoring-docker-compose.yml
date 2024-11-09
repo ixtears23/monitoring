@@ -1,0 +1,78 @@
+services:
+  prometheus:
+    # build: .
+    image: prom/prometheus:latest  # Prometheus 이미지 (최신 버전 사용)
+    container_name: prometheus  # 컨테이너 이름 지정
+    volumes:
+      - ./prometheus/config:/etc/prometheus  # 설정 파일 마운트
+      - ./prometheus/volume:/prometheus  # 데이터 볼륨 마운트
+    ports:
+      - 9090:9090  # 호스트:컨테이너 포트 매핑
+    # 환경 변수 설정 (필요 시 주석 해제)
+    environment:
+      - PROMETHEUS_WEB_ENABLE_ADMIN_API=true  # Admin API 활성화
+      - PROMETHEUS_STORAGE_RETENTION=30d  # 데이터 보존 기간 설정
+      - PROMETHEUS_BASIC_AUTH_USERNAME
+      - PROMETHEUS_BASIC_AUTH_PASSWORD
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - |
+        sed -i "s/YOUR_USERNAME_PLACEHOLDER/${PROMETHEUS_BASIC_AUTH_USERNAME}/g" /etc/prometheus/prometheus.yml && \
+        sed -i "s/YOUR_PASSWORD_PLACEHOLDER/${PROMETHEUS_BASIC_AUTH_PASSWORD}/g" /etc/prometheus/prometheus.yml && \
+        /bin/prometheus --config.file=/etc/prometheus/prometheus.yml
+    restart: always  # 자동 재시작 설정
+    networks:
+      - promnet  # 네트워크 연결
+    user: "1000"  # 사용자 ID 설정
+    # 추가 옵션들 (필요 시 주석 해제)
+    labels:
+      com.example.description: "Prometheus monitoring service"  # 레이블 추가
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'  # 설정 파일 지정
+      - '--storage.tsdb.path=/prometheus'  # 데이터 저장 경로
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]  # 상태 확인 명령어
+      interval: 30s  # 상태 확인 주기
+      timeout: 10s  # 타임아웃 설정
+      retries: 3  # 재시도 횟수
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'  # CPU 사용량 제한
+          memory: '512M'  # 메모리 사용량 제한
+
+  grafana:
+    image: grafana/grafana:latest  # Grafana 이미지 (최신 버전 사용)
+    container_name: grafana  # 컨테이너 이름 지정
+    ports:
+      - 3000:3000  # 호스트:컨테이너 포트 매핑
+    volumes:
+      - ./grafana/volume:/var/lib/grafana  # 데이터 볼륨 마운트
+    restart: always  # 자동 재시작 설정
+    networks:
+      - promnet  # 네트워크 연결
+    user: "1000"  # 사용자 ID 설정
+    # 환경 변수 설정 (필요 시 주석 해제)
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin  # 관리자 사용자 이름
+      - GF_SECURITY_ADMIN_PASSWORD=secret  # 관리자 비밀번호
+      - GF_SERVER_ROOT_URL=http://localhost:3000  # 서버 루트 URL
+    labels:
+      com.example.description: "Grafana visualization service"  # 레이블 추가
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/login"]  # 상태 확인 명령어
+      interval: 30s  # 상태 확인 주기
+      timeout: 10s  # 타임아웃 설정
+      retries: 3  # 재시도 횟수
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'  # CPU 사용량 제한
+          memory: '512M'  # 메모리 사용량 제한
+    depends_on:
+      - prometheus  # Prometheus에 의존 설정
+
+networks:
+  promnet:
+    driver: bridge  # 네트워크 드라이버 설정
